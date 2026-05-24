@@ -1207,11 +1207,15 @@ async function* queryModel(
   const useGlobalCacheFeature = shouldUseGlobalCacheScope()
   const willDefer = (t: Tool) =>
     useToolSearch && (deferredToolNames.has(t.name) || shouldDeferLspTool(t))
-  // MCP tools are per-user → dynamic tool section → can't globally cache.
-  // Only gate when an MCP tool will actually render (not defer_loading).
+  // Tool definitions render before `system` blocks. For `scope: 'global'` on a
+  // system block to form a true cache prefix, every preceding tool would need
+  // `cache_control: { scope: 'global' }` matching Anthropic's authoritative
+  // tool schemas. In this fork the tool set diverges from the upstream
+  // canonical set, so the server-side validator rejects the request with 400.
+  // Whenever any tool will actually render (not defer_loading), fall back to
+  // org-level caching on the system prompt.
   const needsToolBasedCacheMarker =
-    useGlobalCacheFeature &&
-    filteredTools.some(t => t.isMcp === true && !willDefer(t))
+    useGlobalCacheFeature && filteredTools.some(t => !willDefer(t))
 
   // Ensure prompt_caching_scope beta header is present when global cache is enabled.
   if (
@@ -3293,7 +3297,7 @@ export async function queryHaiku({
 type QueryWithModelOptions = Omit<Options, 'getToolPermissionContext'>
 
 /**
- * Query a specific model through the Claude Code infrastructure.
+ * Query a specific model through the GWSH Claude Code infrastructure.
  * This goes through the full query pipeline including proper authentication,
  * betas, and headers - unlike direct API calls.
  */

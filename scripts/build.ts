@@ -109,13 +109,21 @@ for (let i = 0; i < args.length; i += 1) {
 }
 const features = [...featureSet]
 
+let outname = 'cli'
+for (let i = 0; i < args.length; i++) {
+  if (args[i]!.startsWith('--outname=')) {
+    outname = args[i]!.slice('--outname='.length)
+    break
+  }
+}
+
 const outfile = compile
   ? dev
-    ? './dist/cli-dev'
-    : './dist/cli'
+    ? `./dist/${outname}-dev`
+    : `./dist/${outname}`
   : dev
-    ? './cli-dev'
-    : './cli'
+    ? `./${outname}-dev`
+    : `./${outname}`
 const buildTime = new Date().toISOString()
 const version = dev ? getDevVersion(pkg.version) : pkg.version
 
